@@ -21,24 +21,35 @@ $this->section('content');
     <div class="col-12">
         <div class="card m-b-30">
             <div class="card-header">
-                <?php if ($ext['acc'] != $ext['data']) { ?>
-                    <a href="/" class="ml-3 text-danger"><?= $ext['data'] - $ext['acc'] ?> data Belum ACC</a>
-                    <div class="btn-group float-right mr-3">
+                <?php if ($ext['not'] <> 0) { ?>
+                    <a href="/" class="ml-3 text-danger"><?= $ext['not'] ?> data Belum ACC</a>
+                <?php } ?>
+                <?php
+                $selisih = 0;
+                foreach ($remun as $val) :
+                    if ($val['selisih'] <> 0) {
+                        $selisih += 1;
+                    }
+                endforeach;
+                if (($ext['remun'] < $ext['santri']) || ($selisih > 0)) { ?>
+                    <a href="/" class="ml-3 text-warning"><?= ($ext['santri'] - $ext['remun']) + $selisih ?> data Remun<?= $ext['santri'] > $ext['absensi'] ? ' & ' . ($ext['santri'] - $ext['absensi']) . ' data Absensi ' : ' ' ?>Belum disimpan</a>
+                <?php } else if ($ext['not'] <> 0) { ?>
+                    <!-- <div class="btn-group float-right mr-3">
                         <a href="/proses/draft" type="button" class="btn btn-primary waves-effect waves-light">PDF Draft</a>
                         <button class="btn btn-primary">
                             <i class="mdi mdi-file-pdf-box"></i>
                         </button>
-                    </div>
+                    </div> -->
                     <div class="btn-group float-right mr-3">
-                        <a href="/proses/excel" type="button" class="btn btn-primary waves-effect waves-light">Excel Draft</a>
+                        <a href="/proses/excel/<?= $ext['bulan'] ?>" type="button" class="btn btn-primary waves-effect waves-light">Excel Draft</a>
                         <button class="btn btn-primary">
                             <i class="mdi mdi-file-excel-box"></i>
                         </button>
                     </div>
                 <?php } else { ?>
                     <div class="btn-group float-right mr-3">
-                        <a href="" type="button" class="btn btn-primary waves-effect waves-light">Rekap</a>
-                        <a href="" type="button" class="btn btn-primary waves-effect waves-light">Slip</a>
+                        <a href="javascript: w=window.open('rekap/<?= $ext['bulan'] ?>'); w.print();" type="button" class="btn btn-primary waves-effect waves-light">Rekap</a>
+                        <a href="javascript: w=window.open('slip/<?= $ext['bulan'] ?>'); w.print();" type="button" class="btn btn-primary waves-effect waves-light">Slip</a>
                         <button class="btn btn-primary">
                             <i class="mdi mdi-printer"></i>
                         </button>
@@ -87,9 +98,9 @@ $this->section('content');
                                     <?php
                                     if ($row['total'] != 0) {
                                         if ($row['exist'] && $row['selisih'] == 0) { ?>
-                                            <button class="btn btn-success viewData" data-bln="<?= date('M-Y') ?>" data-nip="<?= $row['nip'] ?>" data-toggle="modal" data-animation="bounce" data-target=".myModalForm"><i class="mdi mdi-eye"></i></button>
+                                            <button class="btn btn-success viewData" data-bln="<?= $ext['bulan'] ?>" data-nip="<?= $row['nip'] ?>" data-toggle="modal" data-animation="bounce" data-target=".myModalForm"><i class="mdi mdi-eye"></i></button>
                                         <?php } else { ?>
-                                            <button class="btn btn-warning saveData" data-bln="<?= date('M-Y') ?>" data-nip="<?= $row['nip'] ?>"><i class="mdi mdi-content-save"></i></button>
+                                            <button class="btn btn-warning saveData" data-bln="<?= $ext['bulan'] ?>" data-nip="<?= $row['nip'] ?>"><i class="mdi mdi-content-save"></i></button>
                                     <?php }
                                     } ?>
                                 </td>

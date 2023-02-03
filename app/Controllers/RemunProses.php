@@ -73,20 +73,20 @@ class RemunProses extends BaseController
         return $loy;
     }
 
-    public function index($bln)
+    public function loadData($bln, $ni = 0)
     {
-        $santri = $this->santriModel->where('status_santri <> ', 'Suspend')->asArray()->findAll();
+        $santri = $this->santriModel->where('status_santri <> ', 'Suspend')->orderby('laznah', 'nama')->asArray()->findAll();
         foreach ($santri as $s) {
             $nip = $s['nip'];
             $grade = $s['grade'];
-            $lama = date('Y') - $s['thn_gabung'];
+            $lama = date('Y') - $s['thn_gabung'] + 1;
             $loy = $this->loyal($lama);
             $skim = $this->skimModel->find($grade);
-            $absensi = $this->absensiModel->where('nip', $nip, 'bulan', $bln)->first();
+            $absensi = $this->absensiModel->where('nip', $nip)->where('bulan', $bln)->first();
             if ($absensi) {
-                $honor = ($s['status_santri'] == 'Aktif' && $s['status_rda'] == 'Khidmat' && $loy >= 1) ? $skim['honor'] : 0;
-                $makan = ($s['status_santri'] == 'Aktif' && $lama >= 1) ? $skim['makan'] : $skim['makan'] * $absensi['total'];
-                $transport = ($s['status_santri'] == 'Aktif' && $lama >= 1) ? $skim['transport'] : $skim['transport'] * $absensi['total'];
+                $honor = ($s['status_santri'] == 'Aktif' && $s['status_rda'] == 'Khidmat' && $lama >= 1) ? $skim['honor'] * $loy : 0;
+                $makan = ($s['status_santri'] == 'Aktif' && $lama >= 1 && $absensi['total'] >= 0.9) ? $skim['makan'] : (($s['status_santri'] == 'Aktif' && $lama >= 1) ? round($skim['makan'] * $absensi['total'], -3) : 0);
+                $transport = ($s['status_santri'] == 'Aktif' && $lama >= 1 && $absensi['total'] >= 0.9) ? $skim['makan'] : (($s['status_santri'] == 'Aktif' && $lama >= 1) ? round($skim['transport'] * $absensi['total'], -3) : 0);
             } else {
                 $honor = 0;
                 $makan = 0;
@@ -96,11 +96,12 @@ class RemunProses extends BaseController
             $pot = $this->potonganModel->where('nip', $nip)->first();
             $tunjangan = (!$tunj) ? 0 : $tunj['t_jab'] + $tunj['t_stt'] + $tunj['t_ank'] + $tunj['t_rmh'] + $tunj['t_prg'] + $tunj['t_srg'] + $tunj['t_atr'] + $tunj['t_kes'] + $tunj['t_hra'] + $tunj['t_haj'] + $tunj['t_dka'] + $tunj['t_bns'] + $tunj['t_spc'] + $tunj['t_eks'];
             $potongan = (!$pot) ? 0 : $pot['p_srg'] + $pot['p_atr'] + $pot['p_kes'] + $pot['p_rmh'] + $pot['p_bon'] + $pot['p_htg'] + $pot['p_inf'] + $pot['p_lin'];
-            $total = $honor + $makan + $transport + $tunjangan - $potongan;
-            $zakat = (!$pot) ? 0 : (($pot['p_zkt'] == 0) ? $total * 0.025 : $pot['p_zkt']);
-            $remun = $this->remunModel->where('nip', $nip, 'bulan', $bln)->first();
+            $total = ($honor + $makan + $transport + $tunjangan) - $potongan;
+            $zakat = (!$pot) ? 0 : round((($pot['p_zkt'] == 0) ? $total * 0.025 : $pot['p_zkt']), -3);
+            $total = $total - $zakat;
+            $remun = $this->remunModel->where('nip', $nip)->where('bulan', $bln)->first();
             $dataTotal = (!$remun) ? 0 : $remun['honor'] + $remun['makan'] + $remun['transport'] + ($remun['t_jab'] + $remun['t_stt'] + $remun['t_ank'] + $remun['t_rmh'] + $remun['t_prg'] + $remun['t_srg'] + $remun['t_atr'] + $remun['t_kes'] + $remun['t_hra'] + $remun['t_haj'] + $remun['t_dka'] + $remun['t_bns'] + $remun['t_spc'] + $remun['t_eks']) - ($remun['p_srg'] + $remun['p_atr'] + $remun['p_kes'] + $remun['p_rmh'] + $remun['p_bon'] + $remun['p_htg'] + $remun['p_zkt'] + $remun['p_inf'] + $remun['p_lin']);
-            $selisih = (!$remun) ? 0 : ($total - $zakat) - $dataTotal;
+            $selisih = (!$remun) ? 0 : $total - $dataTotal;
             $data['remun'][] =
                 [
                     'nip' => $nip,
@@ -115,74 +116,78 @@ class RemunProses extends BaseController
                     'makan' => $makan,
                     'transport' => $transport,
                     'tunjangan' => $tunjangan,
-                    'potongan' => $potongan,
+                    'potongan' => $potongan + $zakat,
                     'total' => $total,
-                    'zakat' => round($zakat, 0, 0),
+                    'zakat' => $zakat,
                     'exist' => ($remun) ? true : false,
-                    'selisih' => $selisih,
-                    'bulan' => $bln
+                    'selisih' => $selisih
                 ];
             $data['ext'] =
                 [
                     'data' => $this->santriModel->where('status_santri <> ', 'Suspend')->countAllResults() + $this->absensiModel->countAllResults() + $this->tunjanganModel->countAllResults() + $this->potonganModel->countAllResults(),
                     'acc' => $this->santriModel->where('status_santri <> ', 'Suspend', 'acc', true)->countAllResults() + $this->absensiModel->where('acc', true)->countAllResults() + $this->tunjanganModel->where('acc', true)->countAllResults() + $this->potonganModel->where('acc', true)->countAllResults(),
+                    'not' => $this->santriModel->where('status_santri <> ', 'Suspend')->where('acc', false)->countAllResults() + $this->absensiModel->where('bulan', $bln)->where('acc', false)->countAllResults() + $this->tunjanganModel->where('acc', false)->countAllResults() + $this->potonganModel->where('acc', false)->countAllResults(),
+                    'santri' => $this->santriModel->where('status_santri <> ', 'Suspend')->countAllResults(),
+                    'remun' => $this->remunModel->where('bulan', $bln)->countAllResults(),
+                    'absensi' => $this->absensiModel->where('bulan', $bln)->countAllResults(),
+                    'bulan' => $bln
                 ];
         }
+        if ($ni <> 0) {
+            foreach ($data['remun'] as $remun) {
+                if ($remun['nip'] == $ni) {
+                    $tunj = $this->tunjanganModel->where('nip', $ni)->first();
+                    $pot = $this->potonganModel->where('nip', $ni)->first();
+                    $data = [
+                        'nip' => $ni,
+                        'nama' => $remun['nama'],
+                        'bulan' => $bln,
+                        'honor' => $remun['honor'],
+                        'makan' => $remun['makan'],
+                        'transport' => $remun['transport'],
+                        't_jab' => $tunj['t_jab'],
+                        't_stt' => $tunj['t_stt'],
+                        't_ank' => $tunj['t_ank'],
+                        't_rmh' => $tunj['t_rmh'],
+                        't_prg' => $tunj['t_prg'],
+                        't_srg' => $tunj['t_srg'],
+                        't_atr' => $tunj['t_atr'],
+                        't_kes' => $tunj['t_kes'],
+                        't_hra' => $tunj['t_hra'],
+                        't_haj' => $tunj['t_haj'],
+                        't_dka' => $tunj['t_dka'],
+                        't_bns' => $tunj['t_bns'],
+                        't_spc' => $tunj['t_spc'],
+                        't_eks' => $tunj['t_eks'],
+                        'p_srg' => $pot['p_srg'],
+                        'p_atr' => $pot['p_atr'],
+                        'p_kes' => $pot['p_kes'],
+                        'p_rmh' => $pot['p_rmh'],
+                        'p_bon' => $pot['p_bon'],
+                        'p_htg' => $pot['p_htg'],
+                        'p_zkt' => $remun['zakat'],
+                        'p_inf' => $pot['p_inf'],
+                        'p_lin' => $pot['p_lin'],
+                    ];
+                }
+            }
+        }
+        return $data;
+    }
+
+    public function index($bln)
+    {
+        $data = $this->loadData($bln);
+
         // dd($data);
         return view('remun/proses', $data);
     }
 
     public function simpan($nip, $bln)
     {
-        $s = $this->santriModel->where('nip', $nip)->first();
-        $nip = $s['nip'];
-        $grade = $s['grade'];
-        $lama = date('Y') - $s['thn_gabung'];
-        $loy = $this->loyal($lama);
-        $skim = $this->skimModel->find($grade);
-        $absensi = $this->absensiModel->where('nip', $nip, 'bulan', $bln)->first();
-        $remun = $this->remunModel->where('nip', $nip, 'bulan', $bln)->first();
-        $honor = ($s['status_santri'] == 'Aktif' && $s['status_rda'] == 'Khidmat' && $loy >= 1) ? $skim['honor'] : 0;
-        $makan = ($s['status_santri'] == 'Aktif' && $lama >= 1) ? $skim['makan'] : $skim['makan'] * $absensi['total'];
-        $transport = ($s['status_santri'] == 'Aktif' && $lama >= 1) ? $skim['transport'] : $skim['transport'] * $absensi['total'];
-        $tunj = $this->tunjanganModel->where('nip', $nip)->first();
-        $pot = $this->potonganModel->where('nip', $nip)->first();
-        $tunjangan = (!$tunj) ? 0 : $tunj['t_jab'] + $tunj['t_stt'] + $tunj['t_ank'] + $tunj['t_rmh'] + $tunj['t_prg'] + $tunj['t_srg'] + $tunj['t_atr'] + $tunj['t_kes'] + $tunj['t_hra'] + $tunj['t_haj'] + $tunj['t_dka'] + $tunj['t_bns'] + $tunj['t_spc'] + $tunj['t_eks'];
-        $potongan = (!$pot) ? 0 : $pot['p_srg'] + $pot['p_atr'] + $pot['p_kes'] + $pot['p_rmh'] + $pot['p_bon'] + $pot['p_htg'] + $pot['p_zkt'] + $pot['p_inf'] + $pot['p_lin'];
-        $total = $honor + $makan + $transport + $tunjangan - $potongan;
-        $zakat = $total * 0.025;
-        $data = [
-            'nip' => $nip,
-            'nama' => $s['nama'],
-            'bulan' => $bln,
-            'honor' => $honor,
-            'makan' => $makan,
-            'transport' => $transport,
-            't_jab' => $tunj['t_jab'],
-            't_stt' => $tunj['t_stt'],
-            't_ank' => $tunj['t_ank'],
-            't_rmh' => $tunj['t_rmh'],
-            't_prg' => $tunj['t_prg'],
-            't_srg' => $tunj['t_srg'],
-            't_atr' => $tunj['t_atr'],
-            't_kes' => $tunj['t_kes'],
-            't_hra' => $tunj['t_hra'],
-            't_haj' => $tunj['t_haj'],
-            't_dka' => $tunj['t_dka'],
-            't_bns' => $tunj['t_bns'],
-            't_spc' => $tunj['t_spc'],
-            't_eks' => $tunj['t_eks'],
-            'p_srg' => $pot['p_srg'],
-            'p_atr' => $pot['p_atr'],
-            'p_kes' => $pot['p_kes'],
-            'p_rmh' => $pot['p_rmh'],
-            'p_bon' => $pot['p_bon'],
-            'p_htg' => $pot['p_htg'],
-            'p_zkt' => $zakat,
-            'p_inf' => $pot['p_inf'],
-            'p_lin' => $pot['p_lin'],
-        ];
-
+        $data = $this->loadData($bln, $nip);
+        // dd($data);
+        $remun = $this->remunModel->where('nip', $nip)->where('bulan', $bln)->first();
         if (!$remun) {
             $this->remunModel->insert($data);
         } else {
@@ -203,9 +208,9 @@ class RemunProses extends BaseController
         return view('remun/reset', $data);
     }
 
-    public function export()
+    public function export($bln)
     {
-        $remun = $this->remunModel->where('bulan', date('M-Y'))->findAll();
+        $remun = $this->remunModel->where('bulan', $bln)->findAll();
 
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
@@ -309,5 +314,23 @@ class RemunProses extends BaseController
     public function draft()
     {
         return view('report/remun_draft');
+    }
+
+    public function rekap($bln)
+    {
+        $data = [
+            'remun' => $this->santriModel->query("SELECT santri.nama, santri.grade, santri.status_santri, santri.status_rda, santri.laznah, santri.jabatan, absensi.total, remun.* FROM santri LEFT JOIN absensi ON santri.nip = absensi.nip AND absensi.bulan = '$bln' LEFT JOIN remun ON santri.nip = remun.nip AND remun.bulan = '$bln' WHERE santri.status_santri <> 'Suspend' ORDER BY santri.laznah, santri.nama;")->getResultArray()
+        ];
+        // dd($data);
+        return view('report/remun_rekap', $data);
+    }
+
+    public function slip($bln)
+    {
+        $data = [
+            'remun' => $this->santriModel->query("SELECT santri.nama, santri.grade, santri.status_santri, santri.status_rda, santri.laznah, santri.jabatan, absensi.total, remun.* FROM santri LEFT JOIN absensi ON santri.nip = absensi.nip AND absensi.bulan = '$bln' LEFT JOIN remun ON santri.nip = remun.nip AND remun.bulan = '$bln' WHERE santri.status_santri <> 'Suspend' ORDER BY santri.laznah, santri.nama;")->getResultArray()
+        ];
+        // dd($data);
+        return view('report/remun_slip', $data);
     }
 }

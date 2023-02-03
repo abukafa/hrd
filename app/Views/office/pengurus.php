@@ -66,7 +66,7 @@ $this->section('content');
                                 <td class="d-none d-xl-table-cell"><?= $row['grade'] ?></td>
                                 <td class="d-none d-xl-table-cell"><?= $row['jabatan'] ?></td>
                                 <td class="d-none d-xl-table-cell"><?= $row['laznah'] ?></td>
-                                <td class="d-none d-xl-table-cell"><?= $row['status'] ?></td>
+                                <td class="d-none d-xl-table-cell"><?= $row['status_santri'] ?></td>
                                 <td class="text-center">
                                     <input type="checkbox" style="width: 24px; height: 24px; font-size: 15px;" <?= ($row['acc']) ? 'checked' : '' ?> onclick="acc(<?= $row['id'] ?>)">
                                 <td class="d-none d-lg-table-cell text-center">

@@ -41,7 +41,8 @@ class OfficePengurus extends BaseController
         // }
 
         $data = [
-            'santri' => $this->santriModel->where('status_santri <> ', 'Suspend')->findAll(),
+            // 'santri' => $this->santriModel->where('status_santri <> ', 'Suspend')->findAll(),
+            'santri' => $this->santriModel->orderBy('status_santri')->findAll(),
             'user' => $this->userModel->where('uname', session()->get('uname'))->first()
         ];
         return view('office/pengurus', $data);
