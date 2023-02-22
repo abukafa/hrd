@@ -22,9 +22,9 @@ if (isset($_POST["image"])) {
 
 	$imageName = $nip . '.png';
 
-	if (!file_exists($destdir . $imageName)) {
-		unlink($destdir . $imageName);
-	}
+	// if (!file_exists($destdir . $imageName)) {
+	// 	unlink($destdir . $imageName);
+	// }
 
 	file_put_contents($destdir . $imageName, $data);
 

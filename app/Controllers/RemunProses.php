@@ -119,7 +119,7 @@ class RemunProses extends BaseController
                     'potongan' => $potongan + $zakat,
                     'total' => $total,
                     'zakat' => $zakat,
-                    'exist' => ($remun) ? true : false,
+                    'exist' => ($remun) ? 0 : 1,
                     'selisih' => $selisih
                 ];
             $data['ext'] =
@@ -311,9 +311,12 @@ class RemunProses extends BaseController
         exit();
     }
 
-    public function draft()
+    public function draft($bln)
     {
-        return view('report/remun_draft');
+        $data = [
+            'remun' => $this->santriModel->query("SELECT santri.nama, santri.grade, santri.status_santri, santri.status_rda, santri.laznah, santri.jabatan, absensi.total, remun.* FROM santri LEFT JOIN absensi ON santri.nip = absensi.nip AND absensi.bulan = '$bln' LEFT JOIN remun ON santri.nip = remun.nip AND remun.bulan = '$bln' WHERE santri.status_santri <> 'Suspend' ORDER BY santri.laznah, santri.nama;")->getResultArray()
+        ];
+        return view('report/remun_draft', $data);
     }
 
     public function rekap($bln)

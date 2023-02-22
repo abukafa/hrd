@@ -77,6 +77,28 @@
                 <th class="text-right"><?= number_format($grand, 0, ',', '.') ?></th>
             </tr>
         </table>
+        <br>
+        <div class="row mt-4">
+            <div class="col-8"></div>
+            <div class="col-4 text-center">
+                <strong>Tasikmalaya, <?= date('j M Y') ?></strong>
+            </div>
+            <div class="col-4 text-center">
+                <strong>Ketua Yayasan</strong>
+            </div>
+            <div class="col-4"></div>
+            <div class="col-4 text-center">
+                <strong>HRD Remunerasi</strong>
+            </div>
+            <br>
+            <div class="col-4 mt-5 text-center">
+                <strong>Abu Fauzana</strong>
+            </div>
+            <div class="col-4 mt-5"></div>
+            <div class="col-4 mt-5 text-center">
+                <strong>Anggraeni Devi Lestari</strong>
+            </div>
+        </div>
     </div>
 </body>
 

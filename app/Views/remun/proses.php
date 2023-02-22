@@ -26,25 +26,24 @@ $this->section('content');
                 <?php } ?>
                 <?php
                 $selisih = 0;
+                $absen = 0;
+                $exist = 0;
                 foreach ($remun as $val) :
                     if ($val['selisih'] <> 0) {
                         $selisih += 1;
                     }
+                    if ($val['absensi'] == '') {
+                        $absen += 1;
+                    }
+                    $exist += $val['exist'];
+                    $selisih = $selisih + $exist;
                 endforeach;
-                if (($ext['remun'] < $ext['santri']) || ($selisih > 0)) { ?>
-                    <a href="/" class="ml-3 text-warning"><?= ($ext['santri'] - $ext['remun']) + $selisih ?> data Remun<?= $ext['santri'] > $ext['absensi'] ? ' & ' . ($ext['santri'] - $ext['absensi']) . ' data Absensi ' : ' ' ?>Belum disimpan</a>
+                if (($absen > 0) || ($selisih > 0)) { ?>
+                    <a href="/" class="ml-3 text-warning"><?= ($selisih <> 0 ? $selisih . ' data Remun, ' : '') . ($absen <> 0 ? ($absen) . ' data Absensi, ' : '') ?>Belum disimpan</a>
                 <?php } else if ($ext['not'] <> 0) { ?>
-                    <!-- <div class="btn-group float-right mr-3">
-                        <a href="/proses/draft" type="button" class="btn btn-primary waves-effect waves-light">PDF Draft</a>
-                        <button class="btn btn-primary">
-                            <i class="mdi mdi-file-pdf-box"></i>
-                        </button>
-                    </div> -->
                     <div class="btn-group float-right mr-3">
+                        <a href="javascript: w=window.open('/proses/draft/<?= $ext['bulan'] ?>'); w.print();" type="button" class="btn btn-primary waves-effect waves-light">PDF Draft</a>
                         <a href="/proses/excel/<?= $ext['bulan'] ?>" type="button" class="btn btn-primary waves-effect waves-light">Excel Draft</a>
-                        <button class="btn btn-primary">
-                            <i class="mdi mdi-file-excel-box"></i>
-                        </button>
                     </div>
                 <?php } else { ?>
                     <div class="btn-group float-right mr-3">
@@ -96,8 +95,8 @@ $this->section('content');
                                 <td class="text-right"><strong><?= number_format($row['total'], 0, '.', ',') ?></strong></td>
                                 <td class="text-center" id="myBtn<?= preg_replace('/[^0-9]/', '', $row['nip']) ?>">
                                     <?php
-                                    if ($row['total'] != 0) {
-                                        if ($row['exist'] && $row['selisih'] == 0) { ?>
+                                    if ($row['absensi'] <> '') {
+                                        if (!$row['exist'] && $row['selisih'] == 0) { ?>
                                             <button class="btn btn-success viewData" data-bln="<?= $ext['bulan'] ?>" data-nip="<?= $row['nip'] ?>" data-toggle="modal" data-animation="bounce" data-target=".myModalForm"><i class="mdi mdi-eye"></i></button>
                                         <?php } else { ?>
                                             <button class="btn btn-warning saveData" data-bln="<?= $ext['bulan'] ?>" data-nip="<?= $row['nip'] ?>"><i class="mdi mdi-content-save"></i></button>
@@ -275,8 +274,7 @@ $this->section('content');
 
         //Buttons examples
         var table = $('#datatable-buttons').DataTable({
-            lengthChange: false,
-            buttons: ['copy', 'excel', 'pdf']
+            lengthChange: false
         });
 
         table.buttons().container()
