@@ -25,18 +25,18 @@ $this->section('content');
                     <a href="/" class="ml-3 text-danger"><?= $ext['not'] ?> data Belum ACC</a>
                 <?php } ?>
                 <?php
-                $selisih = 0;
+                $selis = 0;
                 $absen = 0;
                 $exist = 0;
                 foreach ($remun as $val) :
                     if ($val['selisih'] <> 0) {
-                        $selisih += 1;
+                        $selis++;
                     }
                     if ($val['absensi'] == '') {
-                        $absen += 1;
+                        $absen++;
                     }
                     $exist += $val['exist'];
-                    $selisih = $selisih + $exist;
+                    $selisih = $selis + $exist;
                 endforeach;
                 if (($absen > 0) || ($selisih > 0)) { ?>
                     <a href="/" class="ml-3 text-warning"><?= ($selisih <> 0 ? $selisih . ' data Remun, ' : '') . ($absen <> 0 ? ($absen) . ' data Absensi, ' : '') ?>Belum disimpan</a>
